@@ -1,5 +1,5 @@
 import express, { json } from "express";
-import { MongoClient, ObjectId } from "mongodb"
+import { Db, MongoClient, ObjectId } from "mongodb"
 import cors from "cors";
 import dotenv from "dotenv"
 import dayjs from "dayjs";
@@ -50,7 +50,6 @@ server.post("/participants", async (req, res) => {
 server.get("/participants", async (req, res) => {
     try {
         const response = await db.collection("users").find({}).toArray();
-        console.log(response);
         const users = response.map(user => user.participant)
         res.send(users);
     } catch (error) {
@@ -75,7 +74,6 @@ server.post("/messages", async (req, res) => {
         const validade = joiSchemaMessages.validate(message, { abortEarly: "false" });
         const actualMessageTime = dayjs(Date.now()).format("HH:mm:ss");
         const finalMessage = { ...message, time: actualMessageTime, }
-        console.log(finalMessage);
         const response = await db.collection("messages").insertOne(finalMessage);
 
         if (validade.error) {
@@ -84,7 +82,6 @@ server.post("/messages", async (req, res) => {
 
         res.sendStatus(202);
     } catch (error) {
-        console.log(error)
         res.sendStatus(500)
     }
 })
@@ -122,14 +119,12 @@ server.post("/status", async (req, res) => {
 
     try {
         const responseLoggedUser = await db.collection("users").find({ "participant.name": User }).toArray();
-        console.log(responseLoggedUser)
         if (responseLoggedUser.length === 0) {
             res.sendStatus(404);
             return;
         }
         await db.collection("users").updateOne({ "participant.name": User }, { $set: { lastStatus: Date.now() } });
         const responseLoggedUser2 = await db.collection("users").find({ "participant.name": User }).toArray();
-        console.log(responseLoggedUser2);
 
         res.sendStatus(202);
     }
@@ -138,6 +133,33 @@ server.post("/status", async (req, res) => {
         res.sendStatus(500);
     }
 })
+
+setInterval(async () => {
+    try {
+        let timeOut = Date.now() - 10000;
+        const timeOutUsers = await db.collection("users").find({ lastStatus: { $lte: timeOut } }).toArray();
+        console.log(timeOutUsers)
+        if (timeOutUsers.length === 0) {
+            return;
+        }
+        const mapTimeOutUsers = timeOutUsers.map((mUsers) => {
+            let message = {
+                from: mUsers.participant.name,
+                to: 'Todos',
+                text: 'sai da sala...',
+                type: 'status',
+                time: dayjs().format("HH:mm:ss")
+            }
+            return message;
+        });
+        console.log(mapTimeOutUsers)
+        await db.collection("message").insertMany(mapTimeOutUsers)
+        await db.collection("users").deleteMany({ lastStatus: { $lte: timeOut } });
+
+    } catch (error) {
+        res.sendStatus(500);
+    }
+}, 15000);
 
 
 server.listen(port, () => { console.log("Listen on port 5000") });
