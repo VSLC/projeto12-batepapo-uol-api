@@ -37,7 +37,7 @@ server.post('/participants', async (req, res) => {
         if (repeatedUser === undefined) {
             const response = await db.collection('users').insertOne(user);
             const status = { from: participant.name, to: 'Todos', text: 'entra na sala...', type: 'status', time: dayjs(user.lastStatus).format('HH:mm:ss') };
-            const responseStatus = await db.collection('message').insertOne(status);
+            const responseStatus = await db.collection('messages').insertOne(status);
             res.sendStatus(202);
         } else {
             res.sendStatus(500);
@@ -154,7 +154,7 @@ setInterval(async () => {
         };
         return message;
     });
-    await db.collection('message').insertMany(mapTimeOutUsers);
+    await db.collection('messages').insertMany(mapTimeOutUsers);
     await db.collection('users').deleteMany({ lastStatus: { $lte: timeOut } });
 
 }, 15000);
