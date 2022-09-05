@@ -74,6 +74,7 @@ server.post('/messages', async (req, res) => {
         const validade = joiSchemaMessages.validate(message, { abortEarly: 'false' });
         if (validade.error) {
             res.sendStatus(422);
+            return;
         }
         const actualMessageTime = dayjs(Date.now()).format('HH:mm:ss');
         const finalMessage = { ...message, time: actualMessageTime, };
