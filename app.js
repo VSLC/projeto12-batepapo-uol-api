@@ -33,7 +33,7 @@ server.post('/participants', async (req, res) => {
     try {
         const userFind = await db.collection('users').find({}).toArray();
         const userMap = userFind.map(userM => userM.participant.name);
-        const repeatedUser = userMap.find(repeteadUser => repeteadUser === participant.name)
+        const repeatedUser = userMap.find(repeteadUser => repeteadUser === participant.name);
         if (repeatedUser === undefined) {
             const response = await db.collection('users').insertOne(user);
             const status = { from: participant.name, to: 'Todos', text: 'entra na sala...', type: 'status', time: dayjs(user.lastStatus).format('HH:mm:ss') };
@@ -50,10 +50,10 @@ server.post('/participants', async (req, res) => {
 server.get('/participants', async (req, res) => {
     try {
         const response = await db.collection('users').find({}).toArray();
-        const users = response.map(user => user.participant)
+        const users = response.map(user => user.participant);
         res.send(users);
     } catch (error) {
-        res.sendStatus(500)
+        res.sendStatus(500);
     }
 
 })
@@ -72,26 +72,26 @@ server.post('/messages', async (req, res) => {
 
         })
         const validade = joiSchemaMessages.validate(message, { abortEarly: 'false' });
-        const actualMessageTime = dayjs(Date.now()).format('HH:mm:ss');
-        const finalMessage = { ...message, time: actualMessageTime, }
-        const response = await db.collection('messages').insertOne(finalMessage);
-
         if (validade.error) {
             res.sendStatus(422);
         }
+        const actualMessageTime = dayjs(Date.now()).format('HH:mm:ss');
+        const finalMessage = { ...message, time: actualMessageTime, };
+        const response = await db.collection('messages').insertOne(finalMessage);
+
 
         res.sendStatus(202);
     } catch (error) {
-        res.sendStatus(500)
+        res.sendStatus(500);
     }
 })
 
 server.get('/messages', async (req, res) => {
     try {
         const limit = parseInt(req.query.limit);
+        console.log(limit);
         const messages = await db.collection('messages').find({}).toArray();
         const presentUser = req.header('User');
-        console.log(presentUser)
         const filteredMessages = messages.filter((messages) => {
             if (messages.type === 'status' || messages.type === 'message' || messages.from === presentUser || messages.to === presentUser) {
                 return true;
@@ -100,13 +100,14 @@ server.get('/messages', async (req, res) => {
                 return false;
             }
         });
-        console.log(filteredMessages)
         let currentMessages;
         if (isNaN(limit)) {
             currentMessages = filteredMessages.length;
         }
         currentMessages = limit;
-        res.send(filteredMessages.slice(-currentMessages))
+        console.log(currentMessages)
+        const messageSliced = filteredMessages.slice(-currentMessages);
+        res.send(messageSliced);
     } catch (error) {
         res.sendStatus(500);
     }
@@ -116,7 +117,7 @@ server.post('/status', async (req, res) => {
     const User = req.headers.user;
 
     if (!User) {
-        res.sendStatus(500)
+        res.sendStatus(500);
     }
 
     try {
@@ -139,7 +140,6 @@ server.post('/status', async (req, res) => {
 setInterval(async () => {
     let timeOut = Date.now() - 10000;
     const timeOutUsers = await db.collection('users').find({ lastStatus: { $lte: timeOut } }).toArray();
-    console.log(timeOutUsers)
     if (timeOutUsers.length === 0) {
         return;
     }
@@ -150,11 +150,10 @@ setInterval(async () => {
             text: 'sai da sala...',
             type: 'status',
             time: dayjs().format('HH:mm:ss')
-        }
+        };
         return message;
     });
-    console.log(mapTimeOutUsers)
-    await db.collection('message').insertMany(mapTimeOutUsers)
+    await db.collection('message').insertMany(mapTimeOutUsers);
     await db.collection('users').deleteMany({ lastStatus: { $lte: timeOut } });
 
 }, 15000);
